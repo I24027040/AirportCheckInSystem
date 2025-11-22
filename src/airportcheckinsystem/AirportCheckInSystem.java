@@ -94,6 +94,7 @@ public class AirportCheckInSystem extends JFrame {
             Seat seat = seats.get(preferredSeat);
             if (seat != null && seat.tryAssign(bookingRef)) return seat;
 
+            // if one seat is found to be free, return the seat num
             for (String cand : nearestCandidates(preferredSeat)) {
                 Seat s = seats.get(cand);
                 if (s != null && s.tryAssign(bookingRef)) return s;
@@ -101,8 +102,10 @@ public class AirportCheckInSystem extends JFrame {
             return null;
         }
 
+        // returns nearest column and rows
         private List<String> nearestCandidates(String preferred) {
-            int i = 0; while (i < preferred.length() && Character.isDigit(preferred.charAt(i))) i++;
+            int i = 0; 
+            while (i < preferred.length() && Character.isDigit(preferred.charAt(i))) i++;
             int row = Math.max(1, Integer.parseInt(preferred.substring(0, i)));
             char col = preferred.charAt(i);
 
@@ -117,7 +120,8 @@ public class AirportCheckInSystem extends JFrame {
             }
             int[] rowOffsets = { -1, +1, -2, +2 };
             for (int ro : rowOffsets) {
-                int rr = row + ro; if (rr < 1) continue;
+                int rr = row + ro; 
+                if (rr < 1) continue;
                 list.add(seatId(rr, col));
                 for (int off : offsets) {
                     int idx = colIdx + off;
@@ -128,6 +132,7 @@ public class AirportCheckInSystem extends JFrame {
         }
     }
 
+    // flight number and Flight object
     static final class FlightDatabase {
         final Map<String, Flight> flights = new ConcurrentHashMap<>();
         Flight createFlight(String flightNo, int rows, char[] cols) {
@@ -335,6 +340,7 @@ public class AirportCheckInSystem extends JFrame {
         final String br = tfBookingRef.getText().trim();
         final String pref = tfPreferredSeat.getText().trim().toUpperCase(Locale.ROOT);
         if (name.isEmpty() || br.isEmpty() || pref.isEmpty()) {
+            log("Passenger Check In Details contain missing fields.");
             toast("Please fill Name, Booking Ref, and Preferred Seat.");
             return;
         }
@@ -364,12 +370,16 @@ public class AirportCheckInSystem extends JFrame {
         final String weightStr = tfBagWeight.getText().trim();
 
         if (br.isEmpty() || tag.isEmpty() || weightStr.isEmpty()) {
+            log("Baggage Check In Details contain missing field(s)");
             toast("Please fill Booking Ref, Bag Tag, and Weight.");
             return;
         }
         double w;
         try { w = Double.parseDouble(weightStr); }
-        catch (NumberFormatException nfe) { toast("Weight must be a number."); return; }
+        catch (NumberFormatException nfe) { 
+            log("Non numeric weight inserted");
+            toast("Weight must be a number."); return; 
+        }
 
         final Passenger p = new Passenger("N/A", br);
 
@@ -381,6 +391,7 @@ public class AirportCheckInSystem extends JFrame {
                     log("Bag accepted: " + tag + " (" + w + " kg) for " + br);
                 } else {
                     log("Duplicate bagTag ignored: " + tag + " for " + br);
+                    throw new IllegalStateException(tag +" is a duplicate tag, please try again");
                 }
                 SwingUtilities.invokeLater(this::refreshTotals);
             } catch (Exception ex) {
